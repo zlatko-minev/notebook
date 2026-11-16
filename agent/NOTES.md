@@ -1,0 +1,63 @@
+# Archive maintenance guide
+
+This is public operational documentation for human maintainers and coding assistants. The archive and website share one metadata pipeline. Content license: CC BY-NC-ND 4.0 unless an individual work states otherwise.
+
+## Stable paths and citations
+
+- Do not rename published PDFs or move them between folders to change a display title. Existing file paths may be cited or linked.
+- Do not change published item IDs/slugs or existing BibTeX keys. tools/bibkeys.json freezes citation keys; commit newly generated keys.
+- Correct display titles, venues, series, dates, descriptions and links in tools/catalog_overrides.json. Regenerate catalog.json; do not hand-edit generated records.
+- Keep series strings identical across related decks. Series with multiple decks generally have one citation; Career & Outreach is an archive grouping cited deck by deck.
+- Use version_of for redistributed copies; retain their relationship to the original rather than inventing a new work.
+- Coordinate repository/domain changes with canonical URLs, PDF URLs, CITATION.cff, feeds, sitemaps and redirects.
+
+## Add a deck: checklist
+
+1. Check that the material is already public and appropriate for this archive; retain credits. Keep pristine originals outside the repository.
+2. Convert presentation sources to PDF when necessary. tools/convert_pptx_to_pdf.py supports PowerPoint conversion; LibreOffice is another option.
+3. Use the intake command:
+
+   ```sh
+   python3 tools/add_deck.py NEW.pdf --shelf research --title "Title" --year 2027 --venue "Venue"
+   ```
+
+   Shelves are research, lectures, notes. Educational topic subfolders use --folder where appropriate; inspect --help.
+4. Verify title/date/venue/speaker/authors against the title slide or published source. Do not infer a new date from a redistribution or filename alone.
+5. Curate metadata in tools/catalog_overrides.json. Preserve the existing slug when updating a work. Check tags, level, series, links, note_id, added date and version_of when applicable.
+6. Refresh text and write a factual short description, summary and key points from the deck. Verify any claims against the actual slides. Distinguish experiments, simulations and proposals. Never invent results or links.
+7. Run the relevant pipeline:
+
+   ```sh
+   python3 tools/process_pdfs.py
+   python3 tools/build_catalog.py
+   python3 tools/extract_cache.py
+   python3 tools/make_thumbnails.py
+   python3 tools/check_sizes.py
+   python3 tools/build_site.py
+   ```
+
+8. Review the generated item/course/series pages, PDF, thumbnails, citation, related materials and links. Check phone layout, keyboard access and reduced motion if UI changes.
+9. Commit source changes, metadata, generated catalog/text, thumbnails and new frozen BibTeX keys together. Review the diff for unintended files. Do not commit extraction caches, credentials, private notes or unreleased originals.
+10. Use the authorized release workflow. CI checks size, catalog freshness, thumbnails and citation keys before deploying main. History rewrites require a recovery backup and explicit authorization; tools/publish.sh is not an ordinary incremental update command.
+
+## Shelves and summary standards
+
+- research: content - research talks/; invited talks, seminars, keynotes and posters.
+- lectures: content - educational/; schools, courses, tutorials, including career/outreach series.
+- notes: content - tech notes/; numbered derivations and reference notes.
+
+Use clear US English. Summarize what the deck contains, not promotional claims. Credit collaborators and sources. Link the recording for that particular deck/edition, not an unrelated playlist; add a label that explains what the link opens. Verify paper DOI/arXiv matches. Do not remove the archive’s established light touches casually.
+
+## Size budgets and dependencies
+
+No Git LFS. PDFs are compressed to a balanced web quality (about 150 dpi); the processing script must not enlarge them. Preserve readable formulas and plots.
+
+The actual enforced limits are in tools/check_sizes.py: total PDF volume warns at 600 MB and fails at 900 MB; see its per-file limits as well. Run it before release rather than relying on a stale size number in documentation. GitHub's ordinary per-file cap is 100 MB; keep files comfortably smaller.
+
+PDF extraction/rendering requires Poppler; compression requires Ghostscript; image processing requires Pillow. The build itself uses Python and bundled source assets. Default local website builds link to hosted PDFs; --with-pdfs copies PDFs into the output. --serve previews on port 8000.
+
+## Metadata and output map
+
+catalog.json is the generated inventory. catalog_text.json is extracted public slide text. catalog_ai.json is older enrichment used as a fallback; curated metadata takes precedence. site/ contains frontend assets and thumbnails. _site/ is disposable generated output and stays ignored.
+
+Citation metadata and BibTeX are generated by tools/site_pages.py with frozen keys in tools/bibkeys.json. Course metadata lives in courses.json. DOI tooling is tools/zenodo_deposit.py; review prepared deposits and stable URLs before irreversible DOI publication.
